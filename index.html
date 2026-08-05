@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>บันทึกช่องทางลูกค้า</title>
+<title>เติบโต คลินิกเด็กและวัยรุ่น — บันทึกช่องทางลูกค้า</title>
+<link rel="icon" type="image/png" href="logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#F5F3EC; --surface:#FFFFFF; --teal:#1F5D5B; --teal-deep:#123B39;
-    --teal-faint:#E7EFEC; --amber:#E2A63B; --text:#22302E; --muted:#71807C;
-    --border:#DEDACC; --rust:#B94E36;
+    --bg:#F4F7F6; --surface:#FFFFFF; --teal:#0E9C8B; --teal-deep:#0A6357;
+    --teal-faint:#E4F5F2; --amber:#E5177E; --text:#22302E; --muted:#71807C;
+    --border:#DCE7E4; --rust:#B94E36;
   }
   *{box-sizing:border-box;}
   body{
@@ -19,7 +20,9 @@
     padding:28px 24px 60px;
   }
   .wrap{max-width:1080px; margin:0 auto;}
-  header{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:22px;}
+  header{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px;}
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand img{height:58px; width:auto; display:block;}
   h1{font-family:'Prompt',sans-serif; font-weight:600; font-size:24px; margin:0; color:var(--teal-deep);}
   header p{margin:4px 0 0; font-size:13.5px; color:var(--muted);}
   #exportBtn{
@@ -89,9 +92,12 @@
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <h1>บันทึกช่องทางลูกค้า</h1>
-      <p>เก็บเลข CN คู่กับรหัสช่องทางที่ลูกค้าติดต่อเข้ามา แล้วสรุปเป็นไฟล์ Excel</p>
+    <div class="brand">
+      <img src="logo.png" alt="โลโก้คลินิก" />
+      <div>
+        <h1>บันทึกช่องทางลูกค้า</h1>
+        <p>เก็บเลข CN คู่กับรหัสช่องทางที่ลูกค้าติดต่อเข้ามา แล้วสรุปเป็นไฟล์ Excel</p>
+      </div>
     </div>
     <button id="exportBtn" disabled>ดาวน์โหลด Excel (0)</button>
   </header>
