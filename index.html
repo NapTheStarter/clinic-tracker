@@ -212,7 +212,7 @@ async function fetchEntries() {
   if (!data.ok) throw new Error(data.error || "โหลดข้อมูลไม่สำเร็จ");
   return data.entries.map((row) => ({
     id: row.rowIndex,
-    cn: row.cn,
+    cn: String(row.cn),
     channelCode: Number(row.channelCode),
     channelLabel: row.channelLabel,
     name: row.name,
