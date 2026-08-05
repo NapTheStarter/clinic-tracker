@@ -315,6 +315,8 @@ function renderSummary() {
   document.getElementById("exportBtn").textContent = `ดาวน์โหลด Excel (${entries.length})`;
 }
 
+let deleteQueue = Promise.resolve();
+
 function renderTable() {
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
   const filtered = entries.filter((e) => {
@@ -346,7 +348,7 @@ function renderTable() {
     </div>
   `;
   area.querySelectorAll(".del-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       if (btn.disabled) return;
       const id = btn.dataset.id;
       if (String(id).startsWith("temp-")) return; // ยังไม่ซิงก์กับชีทจริง รอสักครู่ก่อนกดลบ
@@ -360,15 +362,19 @@ function renderTable() {
         .map((e) => (e.id > removedRow ? { ...e, id: e.id - 1 } : e));
       render();
       setStatus("saving");
-      try {
-        await deleteEntryRemote(id);
-        setStatus("saved");
-      } catch (err) {
-        entries = snapshot; // คืนค่าเดิมแล้วขอข้อมูลจริงจากชีทใหม่เพื่อความชัวร์
-        render();
-        setStatus("error");
-        await refreshEntries();
-      }
+
+      // เข้าคิว ส่งคำขอลบไปที่ Google ทีละอันตามลำดับที่กด ห้ามแซงคิวกันเด็ดขาด
+      deleteQueue = deleteQueue.then(async () => {
+        try {
+          await deleteEntryRemote(id);
+          setStatus("saved");
+        } catch (err) {
+          entries = snapshot; // คืนค่าเดิมแล้วขอข้อมูลจริงจากชีทใหม่เพื่อความชัวร์
+          render();
+          setStatus("error");
+          await refreshEntries();
+        }
+      });
     });
   });
 }
