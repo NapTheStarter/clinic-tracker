@@ -415,6 +415,8 @@ document.getElementById("cnInput").addEventListener("blur", (e) => {
 document.getElementById("searchInput").addEventListener("input", renderTable);
 
 document.getElementById("saveBtn").addEventListener("click", async () => {
+  const saveBtn = document.getElementById("saveBtn");
+  if (saveBtn.disabled) return;
   const cn = document.getElementById("cnInput").value;
   const errEl = document.getElementById("errorMsg");
   errEl.style.display = "none";
@@ -448,6 +450,8 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     note: document.getElementById("noteInput").value.trim(),
   };
 
+  saveBtn.disabled = true;
+
   // แสดงผลทันทีก่อน ไม่ต้องรอ Google Sheet ตอบกลับ
   const tempId = "temp-" + Date.now();
   entries.unshift({ ...newEntry, id: tempId });
@@ -463,9 +467,13 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   } catch (err) {
     entries = entries.filter((e) => e.id !== tempId);
     render();
-    errEl.textContent = "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
+    errEl.textContent = err.message === "duplicate_cn"
+      ? `เลข CN ${formattedCn} มีอยู่แล้วในระบบ (Google Sheet ปฏิเสธเพราะซ้ำ)`
+      : "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
     errEl.style.display = "block";
     setStatus("error");
+  } finally {
+    saveBtn.disabled = false;
   }
 });
 
