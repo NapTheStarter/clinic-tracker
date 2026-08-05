@@ -315,8 +315,6 @@ function renderSummary() {
   document.getElementById("exportBtn").textContent = `ดาวน์โหลด Excel (${entries.length})`;
 }
 
-let deleteInFlight = false;
-
 function renderTable() {
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
   const filtered = entries.filter((e) => {
@@ -340,7 +338,7 @@ function renderTable() {
               <td>${escapeHtml(e.channelLabel)}</td>
               <td>${escapeHtml(e.name || "-")}</td>
               <td style="white-space:nowrap">${formatThaiDate(e.date)}</td>
-              <td style="text-align:right"><button class="del-btn" data-id="${e.id}" ${deleteInFlight ? "disabled" : ""}>ลบ</button></td>
+              <td style="text-align:right"><button class="del-btn" data-id="${e.id}">ลบ</button></td>
             </tr>
           `).join("")}
         </tbody>
@@ -349,24 +347,27 @@ function renderTable() {
   `;
   area.querySelectorAll(".del-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (deleteInFlight) return;
+      if (btn.disabled) return;
       const id = btn.dataset.id;
       if (String(id).startsWith("temp-")) return; // ยังไม่ซิงก์กับชีทจริง รอสักครู่ก่อนกดลบ
-      deleteInFlight = true;
-      const removed = entries.find((e) => String(e.id) === String(id));
-      entries = entries.filter((e) => String(e.id) !== String(id));
+      btn.disabled = true;
+      const removedRow = Number(id);
+      const snapshot = entries; // เก็บสำรองไว้เผื่อลบไม่สำเร็จ
+
+      // ลบออกจากจอทันที + เลื่อนเลขแถวของรายการที่เหลือเอง ไม่ต้องขอข้อมูลใหม่ทั้งหมด
+      entries = entries
+        .filter((e) => e.id !== removedRow)
+        .map((e) => (e.id > removedRow ? { ...e, id: e.id - 1 } : e));
       render();
       setStatus("saving");
       try {
         await deleteEntryRemote(id);
-        await refreshEntries(); // ดึงข้อมูลทั้งหมดใหม่ ให้หมายเลขแถวของรายการที่เหลือตรงกับความเป็นจริงเสมอ
+        setStatus("saved");
       } catch (err) {
-        if (removed) entries.unshift(removed);
+        entries = snapshot; // คืนค่าเดิมแล้วขอข้อมูลจริงจากชีทใหม่เพื่อความชัวร์
         render();
         setStatus("error");
-      } finally {
-        deleteInFlight = false;
-        render();
+        await refreshEntries();
       }
     });
   });
