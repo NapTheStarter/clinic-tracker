@@ -20,9 +20,9 @@
     padding:28px 24px 60px;
   }
   .wrap{max-width:1080px; margin:0 auto;}
-  header{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px;}
-  .brand{display:flex; align-items:center; gap:14px;}
-  .brand img{height:58px; width:auto; display:block;}
+  header{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; margin-bottom:26px;}
+  header img{height:180px; width:auto; display:block; margin-bottom:4px;}
+  header .subtitle{font-size:13.5px; color:var(--muted); margin:2px 0 14px;}
   h1{font-family:'Prompt',sans-serif; font-weight:600; font-size:24px; margin:0; color:var(--teal-deep);}
   header p{margin:4px 0 0; font-size:13.5px; color:var(--muted);}
   #exportBtn{
@@ -92,13 +92,9 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">
-      <img src="logo.png" alt="โลโก้คลินิก" />
-      <div>
-        <h1>บันทึกช่องทางลูกค้า</h1>
-        <p>เก็บเลข CN คู่กับรหัสช่องทางที่ลูกค้าติดต่อเข้ามา แล้วสรุปเป็นไฟล์ Excel</p>
-      </div>
-    </div>
+    <img src="logo.png" alt="โลโก้คลินิก" />
+    <h1>บันทึกช่องทางลูกค้า</h1>
+    <p class="subtitle">เก็บเลข CN คู่กับรหัสช่องทางที่ลูกค้าติดต่อเข้ามา แล้วสรุปเป็นไฟล์ Excel</p>
     <button id="exportBtn" disabled>ดาวน์โหลด Excel (0)</button>
   </header>
 
