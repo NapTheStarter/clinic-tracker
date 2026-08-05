@@ -342,11 +342,19 @@ function renderTable() {
   `;
   area.querySelectorAll(".del-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const removed = entries.find((e) => String(e.id) === String(id));
+      // ลบออกจากหน้าจอทันที ไม่ต้องรอ Google Sheet ตอบกลับ
+      entries = entries.filter((e) => String(e.id) !== String(id));
+      render();
       setStatus("saving");
       try {
-        await deleteEntryRemote(btn.dataset.id);
-        await refreshEntries();
+        await deleteEntryRemote(id);
+        setStatus("saved");
       } catch (err) {
+        // ลบไม่สำเร็จ เอารายการกลับคืนมา
+        if (removed) entries.unshift(removed);
+        render();
         setStatus("error");
       }
     });
