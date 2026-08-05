@@ -1,462 +1,70 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>เติบโต คลินิกเด็กและวัยรุ่น — บันทึกช่องทางลูกค้า</title>
-<link rel="icon" type="image/png" href="logo.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-  :root{
-    --bg:#F4F7F6; --surface:#FFFFFF; --teal:#0E9C8B; --teal-deep:#0A6357;
-    --teal-faint:#E4F5F2; --amber:#E5177E; --text:#22302E; --muted:#71807C;
-    --border:#DCE7E4; --rust:#B94E36;
+// วางโค้ดนี้ทับใน Code.gs ทั้งหมด
+// จากนั้น Deploy > New deployment > Web app
+// Execute as: Me
+// Who has access: Anyone
+
+const SHEET_NAME = "entries";
+const HEADERS = ["timestamp", "cn", "channelCode", "channelLabel", "name", "date", "note"];
+
+function getSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
   }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--text);
-    padding:28px 24px 60px;
+  const firstCell = sheet.getRange(1, 1).getValue();
+  if (firstCell !== HEADERS[0]) {
+    // หัวตารางหาย/ไม่ตรง หรือชีทว่างเปล่า -> แทรกแถวหัวตารางไว้บนสุดเสมอ
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    sheet.setFrozenRows(1);
   }
-  .wrap{max-width:1080px; margin:0 auto;}
-  header{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; margin-bottom:26px;}
-  header img{height:180px; width:auto; display:block; margin-bottom:4px;}
-  header .subtitle{font-size:13.5px; color:var(--muted); margin:2px 0 14px;}
-  h1{font-family:'Prompt',sans-serif; font-weight:600; font-size:24px; margin:0; color:var(--teal-deep);}
-  header p{margin:4px 0 0; font-size:13.5px; color:var(--muted);}
-  #exportBtn{
-    font-family:'Sarabun',sans-serif; font-weight:600; font-size:14px; background:var(--teal); color:#fff;
-    border:none; border-radius:8px; padding:10px 18px; cursor:pointer; white-space:nowrap;
-  }
-  #exportBtn:disabled{background:var(--border); color:var(--muted); cursor:default;}
-  .grid{display:grid; grid-template-columns:360px 1fr; gap:20px;}
-  @media (max-width:800px){ .grid{grid-template-columns:1fr;} }
-  .card{background:var(--surface); border:0.5px solid var(--border); border-radius:12px;}
-  .form-card{padding:18px 18px 20px;}
-  label{display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:5px;}
-  input{
-    width:100%; height:36px; border:0.5px solid var(--border); border-radius:7px; padding:0 10px;
-    font-size:13.5px; font-family:'Sarabun',sans-serif; background:#FCFBF8; color:var(--text); outline:none;
-  }
-  .field{margin-bottom:14px;}
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  .channel-row{display:flex; align-items:center; justify-content:space-between;}
-  .link-btn{border:none; background:none; color:var(--teal); font-size:11.5px; font-weight:600; cursor:pointer; padding:0;}
-  #channelGrid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px;}
-  .chip{
-    position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-    padding:8px 4px 7px; border-radius:8px; border:0.5px solid var(--border); background:#FCFBF8; cursor:pointer;
-  }
-  .chip.active{border:1.5px solid var(--teal); background:var(--teal-faint);}
-  .chip .code{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:16px;}
-  .chip.active .code, .chip.active .lbl{color:var(--teal-deep);}
-  .chip .lbl{font-size:10.5px; line-height:1.2; color:var(--muted); text-align:center;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-  .chip .rm{
-    position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
-    background:var(--rust); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;
-  }
-  .add-channel-row{display:flex; gap:6px; margin-top:10px;}
-  .add-channel-row input{height:32px; font-size:13px;}
-  .small-btn{height:32px; padding:0 12px; border:0.5px solid var(--teal); color:var(--teal); background:#fff;
-    border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer;}
-  #errorMsg{color:var(--rust); font-size:12.5px; margin:0 0 10px; display:none;}
-  #saveBtn{
-    width:100%; font-family:'Sarabun',sans-serif; font-weight:600; font-size:14.5px; background:var(--teal);
-    color:#fff; border:none; border-radius:8px; padding:10px 0; cursor:pointer;
-  }
-  .summary-card{padding:16px 18px; margin-bottom:16px;}
-  .summary-card p.title, .list-card p.title{
-    margin:0 0 10px; font-size:12.5px; font-weight:600; color:var(--muted); letter-spacing:0.2px;
-  }
-  .sum-row{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
-  .sum-code{font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--teal-deep); width:20px;}
-  .sum-label{font-size:13px; width:130px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .bar-track{flex:1; background:var(--teal-faint); border-radius:5px; height:8px; overflow:hidden;}
-  .bar-fill{height:100%; background:var(--amber); border-radius:5px;}
-  .sum-count{font-size:13px; font-weight:600; width:22px; text-align:right;}
-  .total-row{margin-top:12px; padding-top:10px; border-top:0.5px solid var(--border); display:flex; justify-content:space-between;}
-  .list-card{padding:14px 16px 6px;}
-  .list-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
-  #searchInput{height:30px; width:190px; font-size:12.5px;}
-  table{width:100%; border-collapse:collapse; font-size:12.8px;}
-  thead th{text-align:left; font-weight:600; color:var(--muted); font-size:11.5px; padding:6px; border-bottom:0.5px solid var(--border); position:sticky; top:0; background:var(--surface);}
-  tbody td{padding:7px 6px; border-bottom:0.5px solid #EFEDE4;}
-  .table-wrap{max-height:420px; overflow-y:auto; margin-bottom:8px;}
-  .del-btn{border:none; background:none; color:var(--rust); font-size:11.5px; cursor:pointer; padding:2px 4px;}
-  .empty-msg{font-size:13px; color:var(--muted); padding:16px 0 20px; text-align:center;}
-  #statusMsg{font-size:11px; color:var(--muted); text-align:right; margin-top:8px;}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <img src="logo.png" alt="โลโก้คลินิก" />
-    <h1>บันทึกช่องทางลูกค้า</h1>
-    <p class="subtitle">เก็บเลข CN คู่กับรหัสช่องทางที่ลูกค้าติดต่อเข้ามา แล้วสรุปเป็นไฟล์ Excel</p>
-    <button id="exportBtn" disabled>ดาวน์โหลด Excel (0)</button>
-  </header>
-
-  <div class="grid">
-    <div class="card form-card">
-      <div class="field">
-        <label>เลข CN (7 หลัก)</label>
-        <input id="cnInput" class="mono" placeholder="เช่น 65 → บันทึกเป็น 0000065" />
-      </div>
-
-      <div class="field">
-        <div class="channel-row">
-          <label style="margin-bottom:0">ช่องทางที่ติดต่อมา</label>
-          <button class="link-btn" id="editChannelsBtn">แก้ไขรายการ</button>
-        </div>
-        <div id="channelGrid"></div>
-        <div class="add-channel-row" id="addChannelRow" style="display:none">
-          <input id="newChannelInput" placeholder="เพิ่มช่องทางใหม่" />
-          <button class="small-btn" id="addChannelBtn">เพิ่ม</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>ชื่อคนไข้ (ไม่บังคับ)</label>
-        <input id="nameInput" placeholder="ชื่อ-นามสกุล" />
-      </div>
-
-      <div class="field">
-        <label>วันที่</label>
-        <input id="dateInput" type="date" />
-      </div>
-
-      <div class="field" style="margin-bottom:16px">
-        <label>หมายเหตุ (ไม่บังคับ)</label>
-        <input id="noteInput" placeholder="เช่น สอบถามค่าฉีดวัคซีน" />
-      </div>
-
-      <p id="errorMsg"></p>
-      <button id="saveBtn">บันทึกรายการ</button>
-    </div>
-
-    <div>
-      <div class="card summary-card">
-        <p class="title">สรุปตามช่องทาง</p>
-        <div id="summaryList"></div>
-        <div class="total-row">
-          <span style="font-size:13px; color:var(--muted)">รวมทั้งหมด</span>
-          <span id="totalCount" style="font-size:14px; font-weight:600">0 รายการ</span>
-        </div>
-      </div>
-
-      <div class="card list-card">
-        <div class="list-header">
-          <p class="title" style="margin:0">รายการล่าสุด</p>
-          <input id="searchInput" placeholder="ค้นหา CN / ชื่อ / ช่องทาง" />
-        </div>
-        <div id="tableArea"></div>
-      </div>
-
-      <p id="statusMsg"></p>
-    </div>
-  </div>
-</div>
-
-<script>
-// ===== ตั้งค่า =====
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwz2fkJdZrUVtQh-WKVLkswN4hzUot35b4xoYTMYyV6iv4Pu1-HQxo8isu0v6aK1HYpMg/exec";
-
-const DEFAULT_CHANNELS = [
-  { code: 1, label: "Facebook เพจคลินิก" },
-  { code: 2, label: "LINE Official" },
-  { code: 3, label: "Google ค้นหา" },
-  { code: 4, label: "คนไข้เก่าแนะนำ" },
-  { code: 5, label: "ป้าย/หน้าร้าน" },
-  { code: 6, label: "Instagram" },
-  { code: 7, label: "TikTok" },
-  { code: 8, label: "อื่นๆ" },
-];
-
-// ===== state =====
-let entries = [];
-let channels = JSON.parse(localStorage.getItem("clinic-channels") || "null") || DEFAULT_CHANNELS;
-let selectedChannel = null;
-let editingChannels = false;
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
-document.getElementById("dateInput").value = todayStr();
-
-function formatCN(raw) {
-  const t = raw.trim();
-  if (!t) return "";
-  if (/^\d+$/.test(t)) return t.slice(-7).padStart(7, "0");
-  return t;
+  return sheet;
 }
 
-function formatThaiDate(iso) {
-  if (!iso) return "-";
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
-}
+function doPost(e) {
+  const sheet = getSheet_();
+  const p = (e && e.parameter) || {};
 
-function saveChannels() {
-  localStorage.setItem("clinic-channels", JSON.stringify(channels));
-}
-
-// ===== API =====
-async function fetchEntries() {
-  const res = await fetch(APPS_SCRIPT_URL, { method: "GET" });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "โหลดข้อมูลไม่สำเร็จ");
-  return data.entries.map((row) => ({
-    id: row.rowIndex,
-    cn: row.cn,
-    channelCode: Number(row.channelCode),
-    channelLabel: row.channelLabel,
-    name: row.name,
-    date: row.date,
-    note: row.note,
-  }));
-}
-
-async function postEntry(entry) {
-  const params = new URLSearchParams();
-  Object.entries(entry).forEach(([k, v]) => params.append(k, v));
-  const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: params });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { data = { ok: false, error: text.slice(0, 200) }; }
-  if (!data.ok) throw new Error(data.error || "บันทึกไม่สำเร็จ");
-}
-
-async function deleteEntryRemote(rowIndex) {
-  const params = new URLSearchParams();
-  params.append("action", "delete");
-  params.append("id", rowIndex);
-  const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: params });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { data = { ok: false, error: text.slice(0, 200) }; }
-  if (!data.ok) throw new Error(data.error || "ลบไม่สำเร็จ");
-}
-
-async function refreshEntries() {
-  setStatus("saving");
-  try {
-    entries = await fetchEntries();
-    setStatus("saved");
-  } catch (err) {
-    setStatus("error");
+  if (p.action === "delete") {
+    return deleteRow_(sheet, p.id);
   }
-  render();
+
+  const row = [
+    new Date(),
+    String(p.cn || ""),
+    p.channelCode || "",
+    p.channelLabel || "",
+    p.name || "",
+    p.date || "",
+    p.note || "",
+  ];
+  sheet.appendRow(row);
+  return jsonOut_({ ok: true });
 }
 
-function setStatus(state) {
-  const el = document.getElementById("statusMsg");
-  el.textContent = state === "saving" ? "กำลังซิงก์กับ Google Sheet…"
-    : state === "saved" ? "ข้อมูลตรงกับ Google Sheet แล้ว"
-    : state === "error" ? "เชื่อมต่อ Google Sheet ไม่สำเร็จ" : "";
-}
-
-// ===== render =====
-function renderChannels() {
-  const grid = document.getElementById("channelGrid");
-  grid.innerHTML = "";
-  channels.forEach((c) => {
-    const chip = document.createElement("div");
-    chip.className = "chip" + (selectedChannel === c.code ? " active" : "");
-    chip.title = c.label;
-    chip.innerHTML = `<span class="code">${String(c.code).padStart(2,"0")}</span><span class="lbl">${escapeHtml(c.label)}</span>` +
-      (editingChannels ? `<span class="rm" data-code="${c.code}">×</span>` : "");
-    chip.addEventListener("click", (e) => {
-      if (e.target.classList.contains("rm")) return;
-      selectedChannel = c.code;
-      renderChannels();
+function doGet(e) {
+  const sheet = getSheet_();
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const rows = values.slice(1).map(function (r, idx) {
+    const obj = { rowIndex: idx + 2 };
+    headers.forEach(function (h, i) {
+      obj[h] = r[i] instanceof Date ? r[i].toISOString() : r[i];
     });
-    const rm = chip.querySelector(".rm");
-    if (rm) {
-      rm.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const inUse = entries.some((en) => en.channelCode === c.code);
-        if (inUse) return;
-        channels = channels.filter((x) => x.code !== c.code);
-        saveChannels();
-        renderChannels();
-        renderSummary();
-      });
-    }
-    grid.appendChild(chip);
+    return obj;
   });
+  return jsonOut_({ ok: true, entries: rows });
 }
 
-function escapeHtml(s) {
-  const div = document.createElement("div");
-  div.textContent = s;
-  return div.innerHTML;
+function deleteRow_(sheet, rowIndex) {
+  if (!rowIndex || rowIndex < 2) return jsonOut_({ ok: false, error: "bad row" });
+  sheet.deleteRow(Number(rowIndex));
+  return jsonOut_({ ok: true });
 }
 
-function renderSummary() {
-  const counts = channels.map((c) => ({ ...c, count: entries.filter((e) => e.channelCode === c.code).length }));
-  const maxCount = Math.max(1, ...counts.map((c) => c.count));
-  const sorted = counts.slice().sort((a, b) => b.count - a.count);
-  const list = document.getElementById("summaryList");
-  list.innerHTML = sorted.map((c) => `
-    <div class="sum-row">
-      <span class="sum-code">${String(c.code).padStart(2,"0")}</span>
-      <span class="sum-label">${escapeHtml(c.label)}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${(c.count/maxCount)*100}%; background:${c.count>0?'var(--amber)':'transparent'}"></div></div>
-      <span class="sum-count">${c.count}</span>
-    </div>
-  `).join("");
-  document.getElementById("totalCount").textContent = entries.length + " รายการ";
-  document.getElementById("exportBtn").disabled = entries.length === 0;
-  document.getElementById("exportBtn").textContent = `ดาวน์โหลด Excel (${entries.length})`;
+function jsonOut_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
+    ContentService.MimeType.JSON
+  );
 }
-
-function renderTable() {
-  const search = document.getElementById("searchInput").value.trim().toLowerCase();
-  const filtered = entries.filter((e) => {
-    if (!search) return true;
-    return e.cn.toLowerCase().includes(search) || (e.name && e.name.toLowerCase().includes(search)) || e.channelLabel.toLowerCase().includes(search);
-  });
-  const area = document.getElementById("tableArea");
-  if (filtered.length === 0) {
-    area.innerHTML = `<p class="empty-msg">ยังไม่มีรายการ — เริ่มบันทึกจากฟอร์มด้านซ้าย</p>`;
-    return;
-  }
-  area.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>CN</th><th>รหัส</th><th>ช่องทาง</th><th>ชื่อ</th><th>วันที่</th><th></th></tr></thead>
-        <tbody>
-          ${filtered.map((e) => `
-            <tr>
-              <td class="mono">${escapeHtml(e.cn)}</td>
-              <td class="mono" style="color:var(--teal-deep); font-weight:600">${String(e.channelCode).padStart(2,"0")}</td>
-              <td>${escapeHtml(e.channelLabel)}</td>
-              <td>${escapeHtml(e.name || "-")}</td>
-              <td style="white-space:nowrap">${formatThaiDate(e.date)}</td>
-              <td style="text-align:right"><button class="del-btn" data-id="${e.id}">ลบ</button></td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-  area.querySelectorAll(".del-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      setStatus("saving");
-      try {
-        await deleteEntryRemote(btn.dataset.id);
-        await refreshEntries();
-      } catch (err) {
-        setStatus("error");
-      }
-    });
-  });
-}
-
-function render() {
-  renderChannels();
-  renderSummary();
-  renderTable();
-}
-
-// ===== events =====
-document.getElementById("editChannelsBtn").addEventListener("click", () => {
-  editingChannels = !editingChannels;
-  document.getElementById("editChannelsBtn").textContent = editingChannels ? "เสร็จแล้ว" : "แก้ไขรายการ";
-  document.getElementById("addChannelRow").style.display = editingChannels ? "flex" : "none";
-  renderChannels();
-});
-
-document.getElementById("addChannelBtn").addEventListener("click", () => {
-  const input = document.getElementById("newChannelInput");
-  const label = input.value.trim();
-  if (!label) return;
-  const nextCode = channels.length ? Math.max(...channels.map((c) => c.code)) + 1 : 1;
-  channels.push({ code: nextCode, label });
-  saveChannels();
-  input.value = "";
-  renderChannels();
-  renderSummary();
-});
-document.getElementById("newChannelInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") document.getElementById("addChannelBtn").click();
-});
-
-document.getElementById("cnInput").addEventListener("blur", (e) => {
-  if (e.target.value.trim()) e.target.value = formatCN(e.target.value);
-});
-
-document.getElementById("searchInput").addEventListener("input", renderTable);
-
-document.getElementById("saveBtn").addEventListener("click", async () => {
-  const cn = document.getElementById("cnInput").value;
-  const errEl = document.getElementById("errorMsg");
-  errEl.style.display = "none";
-
-  if (!cn.trim()) {
-    errEl.textContent = "กรอกเลข CN ก่อน";
-    errEl.style.display = "block";
-    return;
-  }
-  if (!selectedChannel) {
-    errEl.textContent = "เลือกช่องทางที่ติดต่อมา";
-    errEl.style.display = "block";
-    return;
-  }
-  const ch = channels.find((c) => c.code === selectedChannel);
-  const newEntry = {
-    cn: formatCN(cn),
-    channelCode: selectedChannel,
-    channelLabel: ch ? ch.label : "",
-    name: document.getElementById("nameInput").value.trim(),
-    date: document.getElementById("dateInput").value,
-    note: document.getElementById("noteInput").value.trim(),
-  };
-
-  // แสดงผลทันทีก่อน ไม่ต้องรอ Google Sheet ตอบกลับ
-  const tempId = "temp-" + Date.now();
-  entries.unshift({ ...newEntry, id: tempId });
-  render();
-  document.getElementById("cnInput").value = "";
-  document.getElementById("nameInput").value = "";
-  document.getElementById("noteInput").value = "";
-
-  setStatus("saving");
-  try {
-    await postEntry(newEntry);
-    await refreshEntries(); // ดึงข้อมูลจริงจากชีทมาแทนที่ของชั่วคราว (rowIndex ที่แท้จริง)
-  } catch (err) {
-    entries = entries.filter((e) => e.id !== tempId);
-    render();
-    errEl.textContent = "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
-    errEl.style.display = "block";
-    setStatus("error");
-  }
-});
-
-document.getElementById("exportBtn").addEventListener("click", () => {
-  const listRows = entries.slice().sort((a, b) => (a.date < b.date ? 1 : -1)).map((e) => ({
-    "เลข CN": e.cn, "รหัสช่องทาง": e.channelCode, "ชื่อช่องทาง": e.channelLabel,
-    "ชื่อคนไข้": e.name || "", "วันที่": e.date, "หมายเหตุ": e.note || "",
-  }));
-  const summary = channels.map((c) => ({
-    "รหัส": c.code, "ช่องทาง": c.label, "จำนวน": entries.filter((e) => e.channelCode === c.code).length,
-  })).sort((a, b) => b["จำนวน"] - a["จำนวน"]);
-  summary.push({ "รหัส": "", "ช่องทาง": "รวมทั้งหมด", "จำนวน": entries.length });
-
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.json_to_sheet(listRows);
-  ws1["!cols"] = [{wch:10},{wch:10},{wch:20},{wch:18},{wch:12},{wch:24}];
-  XLSX.utils.book_append_sheet(wb, ws1, "รายการลูกค้า");
-  const ws2 = XLSX.utils.json_to_sheet(summary);
-  ws2["!cols"] = [{wch:8},{wch:22},{wch:10}];
-  XLSX.utils.book_append_sheet(wb, ws2, "สรุปช่องทาง");
-  XLSX.writeFile(wb, `customer-source_${todayStr()}.xlsx`);
-});
-
-// ===== init =====
-render();
-refreshEntries();
-</script>
-</body>
-</html>
