@@ -202,7 +202,10 @@ function saveChannels() {
 
 // ===== API =====
 async function fetchEntries() {
-  const res = await fetch(APPS_SCRIPT_URL, { method: "GET" });
+  const res = await fetch(APPS_SCRIPT_URL + "?t=" + Date.now(), {
+    method: "GET",
+    cache: "no-store",
+  });
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "โหลดข้อมูลไม่สำเร็จ");
   return data.entries.map((row) => ({
@@ -411,9 +414,18 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     errEl.style.display = "block";
     return;
   }
+
+  const formattedCn = formatCN(cn);
+  const dup = entries.find((e) => e.cn === formattedCn);
+  if (dup) {
+    errEl.textContent = `เลข CN ${formattedCn} มีอยู่แล้วในระบบ (ช่องทาง: ${dup.channelLabel}, วันที่: ${formatThaiDate(dup.date)})`;
+    errEl.style.display = "block";
+    return;
+  }
+
   const ch = channels.find((c) => c.code === selectedChannel);
   const newEntry = {
-    cn: formatCN(cn),
+    cn: formattedCn,
     channelCode: selectedChannel,
     channelLabel: ch ? ch.label : "",
     name: document.getElementById("nameInput").value.trim(),
