@@ -190,9 +190,11 @@ function formatCN(raw) {
   return t;
 }
 
-function formatThaiDate(iso) {
-  if (!iso) return "-";
-  const d = new Date(iso + "T00:00:00");
+function formatThaiDate(raw) {
+  if (!raw) return "-";
+  const s = String(raw);
+  const d = s.includes("T") ? new Date(s) : new Date(s + "T00:00:00");
+  if (isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
 }
 
