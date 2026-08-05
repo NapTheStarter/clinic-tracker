@@ -410,14 +410,22 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
     date: document.getElementById("dateInput").value,
     note: document.getElementById("noteInput").value.trim(),
   };
+
+  // แสดงผลทันทีก่อน ไม่ต้องรอ Google Sheet ตอบกลับ
+  const tempId = "temp-" + Date.now();
+  entries.unshift({ ...newEntry, id: tempId });
+  render();
+  document.getElementById("cnInput").value = "";
+  document.getElementById("nameInput").value = "";
+  document.getElementById("noteInput").value = "";
+
   setStatus("saving");
   try {
     await postEntry(newEntry);
-    await refreshEntries();
-    document.getElementById("cnInput").value = "";
-    document.getElementById("nameInput").value = "";
-    document.getElementById("noteInput").value = "";
+    await refreshEntries(); // ดึงข้อมูลจริงจากชีทมาแทนที่ของชั่วคราว (rowIndex ที่แท้จริง)
   } catch (err) {
+    entries = entries.filter((e) => e.id !== tempId);
+    render();
     errEl.textContent = "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง";
     errEl.style.display = "block";
     setStatus("error");
