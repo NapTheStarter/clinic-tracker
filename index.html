@@ -275,15 +275,17 @@ async function fetchEntries() {
   });
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "โหลดข้อมูลไม่สำเร็จ");
-  return data.entries.map((row) => ({
-    id: row.rowIndex,
-    cn: String(row.cn),
-    channelCode: Number(row.channelCode),
-    channelLabel: row.channelLabel,
-    name: row.name,
-    date: row.date,
-    note: row.note,
-  }));
+  return data.entries
+    .map((row) => ({
+      id: row.rowIndex,
+      cn: String(row.cn),
+      channelCode: Number(row.channelCode),
+      channelLabel: row.channelLabel,
+      name: row.name,
+      date: row.date,
+      note: row.note,
+    }))
+    .reverse();
 }
 
 async function postEntry(entry) {
