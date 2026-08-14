@@ -168,6 +168,7 @@
       <div class="field">
         <label>เลข CN (7 หลัก)</label>
         <input id="cnInput" class="mono" placeholder="เช่น 65 → บันทึกเป็น 0000065" />
+        <p id="cnDupHint" style="color:var(--rust); font-size:12px; margin:5px 0 0; display:none;"></p>
       </div>
 
       <div class="field">
@@ -479,6 +480,23 @@ document.getElementById("cnInput").addEventListener("blur", (e) => {
   if (e.target.value.trim()) e.target.value = formatCN(e.target.value);
 });
 
+document.getElementById("cnInput").addEventListener("input", (e) => {
+  const hint = document.getElementById("cnDupHint");
+  const raw = e.target.value.trim();
+  if (!raw) {
+    hint.style.display = "none";
+    return;
+  }
+  const candidate = formatCN(raw);
+  const dup = entries.find((en) => en.cn === candidate);
+  if (dup) {
+    hint.textContent = `⚠ เลข CN ${candidate} มีอยู่แล้ว (${dup.channelLabel}, ${formatThaiDate(dup.date)})`;
+    hint.style.display = "block";
+  } else {
+    hint.style.display = "none";
+  }
+});
+
 document.getElementById("searchInput").addEventListener("input", renderTable);
 
 document.getElementById("saveBtn").addEventListener("click", async () => {
@@ -526,6 +544,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   document.getElementById("cnInput").value = "";
   document.getElementById("nameInput").value = "";
   document.getElementById("noteInput").value = "";
+  document.getElementById("cnDupHint").style.display = "none";
 
   setStatus("saving");
   try {
